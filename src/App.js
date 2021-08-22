@@ -2,17 +2,19 @@ import logo from './logo.svg';
 import './App.css';
 import InputSample from './exam/InputSample';
 import UserList from './exam/UserList';
-import { useRef, useState } from 'react';
+import { useCallback, useMemo, useReducer, useRef, useState } from 'react';
 import UserInputs from './exam/UserInputs';
 
-function App() {
-  const [inputs, setInputs] = useState({
+function countActiveUsers(users) {
+  return users.filter(user => user.active).length;
+}
+
+const initialState = {
+  inputs: {
     name: '',
     nickname: ''
-  })
-  const {name, nickname} = inputs;
-
-  const [users, setUsers] = useState([
+  },
+  users: [
     {
       id: 1,
       name: 'hello1',
@@ -31,52 +33,94 @@ function App() {
       nickname: 'world3',
       active: false
     },
-  ])
+  ]
+}
 
+function reducer(state, action) {
+  switch (action.type) {
+    case 'CHANGE_INPUT':
+      return {
+        ...state,
+        inputs: {
+          ...state.inputs,
+          [action.name]: action.value
+        }
+      }
+    case 'CREATE_USER':
+      return {
+        inputs: initialState.inputs,
+        users: state.users.concat(action.user)
+      }
+    case 'TOGGLE_USER':
+      return {
+        ...state,
+        users: state.users.map(user => 
+          user.id === action.id
+            ? {...user, active: !user.active} 
+            : user
+          )
+      }
+    case 'REMOVE_USER':
+      return {
+        ...state,
+        users: state.users.filter(user => user.id !== action.id)
+      }
+    default:
+      throw new Error("error");
+  }
+}
+
+
+function App() {
+
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const { users } = state;
+  const { name, nickname } = state.inputs;
   const nextId = useRef(4);
 
-  const onChange = (e) => {
-    const {name, value} = e.target;
-    setInputs({
-      ...inputs,
-      [name]: value
-    })
-  }
-
-  const onCreate = () => {
-    const user = {
-      id: nextId,
+  const onChange = useCallback(e => {
+    const { name, value } = e.target;
+    dispatch({
+      type: 'CHANGE_INPUT',
       name,
-      nickname
-    }
-    setUsers([...users, user]);
-    setInputs({
-      name: '',
-      nickname: ''
+      value
     })
-    
-    inputFocus.current.focus();
-    nextId.current += 1;
+  }, []);
 
-  }
-  const onRemove = (id) => {
-    setUsers(users.filter(user => user.id !==  id));
-  }
+  const onCreate = useCallback(e => {
+    dispatch({
+      type: 'CREATE_USER',
+      user: {
+        id: nextId.current,
+        name,
+        nickname
+      }
+    });
+    nextId.current += 1
+  }, [name, nickname])
 
-  const onUpdate = (id) => {
-    setUsers(users.map(user => 
-      user.id === id 
-      ? {...user, active: !user.active}
-      : user
-    ))
-  }
+  const onUpdate = useCallback(id => {
+    dispatch({
+      type: 'TOGGLE_USER',
+      id
+    })
+  }, []);
 
-  const inputFocus = useRef();
+  const onRemove = useCallback(id => {
+    dispatch({
+      type: 'REMOVE_USER',
+      id
+    })
+  }, [])
+
+  const count = useMemo(() => countActiveUsers(users), [users]);
+
 
   return (
     <div>
-      <UserInputs focus={inputFocus} name={name} nickname={nickname} onCreate={onCreate} onChange={onChange} />
-      <UserList users={users} onRemove={onRemove} onUpdate={onUpdate} />
+      <UserInputs name={name} nickname={nickname} onChange={onChange} onCreate={onCreate} />
+      <UserList users={users} onUpdate={onUpdate} onRemove={onRemove} />
+      <div>사용자 수: {count}</div>
     </div>
   );
 }

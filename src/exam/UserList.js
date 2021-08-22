@@ -1,8 +1,9 @@
 import React, { useRef } from 'react';
 
 
-function UserProps({ user, onRemove, onUpdate}) {
+const UserProps = React.memo(function UserProps({ user, onRemove, onUpdate}) {
     const {name, nickname, id, active} = user;
+    console.log(active);
     return (
         <div>
             <span 
@@ -16,7 +17,7 @@ function UserProps({ user, onRemove, onUpdate}) {
             <button onClick={() => onRemove(id)}>삭제</button>
         </div>
     )
-}
+});
 
 function UserList({ users, onRemove, onUpdate }) {
     return (
@@ -29,4 +30,4 @@ function UserList({ users, onRemove, onUpdate }) {
 }
 
 
-export default UserList;
+export default React.memo(UserList);

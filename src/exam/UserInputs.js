@@ -10,4 +10,4 @@ function UserInputs({name, nickname, onChange, onCreate, focus}) {
     )
 }
 
-export default UserInputs;
+export default React.memo(UserInputs);
